@@ -9,15 +9,20 @@ import * as d3 from 'd3'
 // ]
 
 const url = "https://udemy-react-d3.firebaseio.com/tallest_men.json"
-const WIDTH = 800
-const HEIGHT = 500
+// margin is for using d3 margin convention
+const MARGIN = {TOP: 10, BOTTOM: 50, LEFT: 10, RIGHT: 10}
+const WIDTH = 800 - MARGIN.LEFT - MARGIN.RIGHT
+const HEIGHT = 500 - MARGIN.TOP - MARGIN.BOTTOM
 
 export default class D3Chart {
   constructor(element) {
     const svg = d3.select(element)
       .append("svg")
-      .attr("width", WIDTH)
-      .attr("height", HEIGHT)
+        .attr("width", WIDTH + MARGIN.LEFT + MARGIN.RIGHT)
+        .attr("height", HEIGHT + MARGIN.TOP + MARGIN.BOTTOM)
+      .append("g") // append svg group element onto svg canvas
+        // add 10 pixel margin on left and top
+        .attr("transform", `translate(${MARGIN.LEFT}, ${MARGIN.TOP})`)
 
     d3.json(url).then(data => {
       // d3.max loops through data array and finds max height
@@ -33,6 +38,19 @@ export default class D3Chart {
         .domain(data.map(d => d.name))
         .range([0, WIDTH])
         .padding(0.4)
+
+      // generate x axis, pass in x scale
+      const xAxisCall = d3.axisBottom(x)
+      // to call axis generator, need to use call method on svg var
+      // append empty group for axis gen to be called on to get both axes to show
+      svg.append("g")
+        // use transform attr and translate attr to put x axis on bottom instead of top
+        .attr("transform", `translate(0, ${HEIGHT})`)
+        .call(xAxisCall)
+
+      // generate y axis
+      const yAxisCall = d3.axisLeft(y)
+      svg.append("g").call(yAxisCall)
 
       // when want to add more than one data elem to screen at once do selectAll
       const rects = svg.selectAll("rect")
