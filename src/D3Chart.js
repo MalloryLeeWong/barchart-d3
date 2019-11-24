@@ -18,16 +18,28 @@ export default class D3Chart {
       .attr("height", 500)
 
     d3.json(url).then(data => {
+      const y = d3.scaleLinear()
+      // domain takes an array with 2 elems, min and max input units
+        .domain([0, 272])
+      // range takes arr of 2 elems, min and max outputs in pixels
+        .range([0, 500])
+      // console.log(y(272)) pass in 272 cm, returns 500 pixels
+
+      const x = d3.scaleBand()
+        .domain(data.map(d => d.name))
+        .range([0, 800])
+        .padding(0.4)
+
       // when want to add more than one data elem to screen at once do selectAll
       const rects = svg.selectAll("rect")
         .data(data)
 
       // enter and append add ever item in data to our screen
       rects.enter().append("rect")
-        .attr("x", (d, i) => i *100)
+        .attr("x", d => x(d.name))
         .attr("y", 0)
-        .attr("width", 50)
-        .attr("height", d => d.height) // make sure height 270 cm / pixels here fits in height svg 500
+        .attr("width", x.bandwidth)
+        .attr("height", d => y(d.height)) // make sure height 270 cm / pixels here fits in height svg 500
     })
 
   }
