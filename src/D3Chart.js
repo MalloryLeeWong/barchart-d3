@@ -1,4 +1,4 @@
-import * as d3 from 'd3'
+import * as d3 from 'd3';
 
 // const data = [
 //   {height: "272", name: "Robert Wadlow"},
@@ -8,78 +8,117 @@ import * as d3 from 'd3'
 //   {height: "251.4", name: "Vaino Myllyrinne"},
 // ]
 
-const url = "https://udemy-react-d3.firebaseio.com/tallest_men.json"
+const url = 'https://udemy-react-d3.firebaseio.com/tallest_men.json';
 // margin is for using d3 margin convention
-const MARGIN = {TOP: 10, BOTTOM: 50, LEFT: 70, RIGHT: 10}
-const WIDTH = 800 - MARGIN.LEFT - MARGIN.RIGHT
-const HEIGHT = 500 - MARGIN.TOP - MARGIN.BOTTOM
+const MARGIN = { TOP: 10, BOTTOM: 50, LEFT: 70, RIGHT: 10 };
+const WIDTH = 800 - MARGIN.LEFT - MARGIN.RIGHT;
+const HEIGHT = 500 - MARGIN.TOP - MARGIN.BOTTOM;
 
 export default class D3Chart {
+  // put things that only need to be called once in constructor
   constructor(element) {
-    const svg = d3.select(element)
-      .append("svg")
-        .attr("width", WIDTH + MARGIN.LEFT + MARGIN.RIGHT)
-        .attr("height", HEIGHT + MARGIN.TOP + MARGIN.BOTTOM)
-      .append("g") // append svg group element onto svg canvas
-        // add 10 pixel margin on left and top
-        .attr("transform", `translate(${MARGIN.LEFT}, ${MARGIN.TOP})`)
+    const vis = this;
+    // the visualization instance, calling it vis to define what this is
 
+    vis.svg = d3
+      .select(element)
+      .append('svg')
+      .attr('width', WIDTH + MARGIN.LEFT + MARGIN.RIGHT)
+      .attr('height', HEIGHT + MARGIN.TOP + MARGIN.BOTTOM)
+      .append('g') // append svg group element onto svg canvas
+      // add 10 pixel margin on left and top
+      .attr('transform', `translate(${MARGIN.LEFT}, ${MARGIN.TOP})`);
+
+    // add x-axis label
+    vis.svg
+      .append('text')
+      .attr('x', WIDTH / 2)
+      .attr('y', HEIGHT + 50)
+      .attr('text-anchor', 'middle')
+      .text("The world's tallest men");
+
+    // add y-axis label
+    vis.svg
+      .append('text')
+      .attr('x', -(HEIGHT / 2))
+      .attr('y', -50)
+      .attr('text-anchor', 'middle')
+      .text('Height in cm')
+      .attr('transform', 'rotate(-90)');
+
+    // want to define x and y axis once originally
+    vis.xAxisGroup = vis.svg
+      .append('g')
+      .attr('transform', `translate(0, ${HEIGHT})`);
+    // append empty group for axis gen to be called on to get both axes to show
+    // use transform attr and translate attr to put x axis on bottom instead of top
+
+    vis.yAxisGroup = vis.svg.append('g');
+
+    // once load data, our graph gets updated by update method every 1000 ms
     d3.json(url).then(data => {
-      // d3.max loops through data array and finds max height
-      const max = d3.max(data, d => d.height)
-      const min = d3.min(data, d => d.height)
-      const y = d3.scaleLinear()
+      vis.data = data;
+
+      d3.interval(() => {
+        vis.update();
+      }, 1000);
+    });
+  }
+
+  // update method gets called every time we update our data
+  update() {
+    const vis = this;
+
+    // d3.max loops through data array and finds max height
+    const max = d3.max(vis.data, d => d.height);
+    const min = d3.min(vis.data, d => d.height);
+    const y = d3
+      .scaleLinear()
       // domain takes an array with 2 elems, min and max input units
-        .domain([min * 0.95, max])
+      .domain([min * 0.95, max])
       // range takes arr of 2 elems, min and max outputs in pixels
-        .range([HEIGHT,0]) // put height as min to get y axis to start at bottom left
-      // console.log(y(272)) pass in 272 cm, returns 500 pixels
+      .range([HEIGHT, 0]); // put height as min to get y axis to start at bottom left
+    // console.log(y(272)) pass in 272 cm, returns 500 pixels
 
-      const x = d3.scaleBand()
-        .domain(data.map(d => d.name))
-        .range([0, WIDTH])
-        .padding(0.4)
+    const x = d3
+      .scaleBand()
+      .domain(vis.data.map(d => d.name))
+      .range([0, WIDTH])
+      .padding(0.4);
 
-      // generate x axis, pass in x scale
-      const xAxisCall = d3.axisBottom(x)
-      // to call axis generator, need to use call method on svg var
-      // append empty group for axis gen to be called on to get both axes to show
-      svg.append("g")
-        // use transform attr and translate attr to put x axis on bottom instead of top
-        .attr("transform", `translate(0, ${HEIGHT})`)
-        .call(xAxisCall)
+    // updates x axis, passing in x scale
+    const xAxisCall = d3.axisBottom(x);
+    // to call or recalculate axis, need to use call method
+    vis.xAxisGroup.call(xAxisCall);
 
-      // generate y axis
-      const yAxisCall = d3.axisLeft(y)
-      svg.append("g").call(yAxisCall)
+    // updates y axis
+    const yAxisCall = d3.axisLeft(y);
+    vis.yAxisGroup.call(yAxisCall);
 
-      // add x-axis label
-      svg.append("text")
-        .attr("x", WIDTH / 2)
-        .attr("y", HEIGHT + 50)
-        .attr("text-anchor", "middle")
-        .text("The world's tallest men")
+    // DATA JOIN - which arr of data we want to associate with shapes
+    // when want to add more than one data elem to screen at once do selectAll
+    const rects = vis.svg.selectAll('rect').data(vis.data);
 
-      // add y-axis label
-      svg.append("text")
-        .attr("x", - (HEIGHT /2))
-        .attr("y", -50)
-        .attr("text-anchor", "middle")
-        .text("Height in cm")
-        .attr("transform", "rotate(-90)")
+    // EXIT - removes any els in screen that aren't in array
+    rects.exit().remove();
 
-      // when want to add more than one data elem to screen at once do selectAll
-      const rects = svg.selectAll("rect")
-        .data(data)
+    // UPDATE - updates attr of rects that are both in arr and screen
+    rects
+      .attr('x', d => x(d.name))
+      // move bars to start at x axis (instead of top left), have y val that's different for each el in array, return screen height - conversion of each el's height to pixels
+      .attr('y', d => y(d.height))
+      .attr('width', x.bandwidth)
+      .attr('height', d => HEIGHT - y(d.height)); // make sure height 270 cm / pixels here fits in height svg 500
 
-      // enter and append add ever item in data to our screen
-      rects.enter().append("rect")
-        .attr("x", d => x(d.name))
-        // move bars to start at x axis (instead of top left), have y val that's different for each el in array, return screen height - conversion of each el's height to pixels
-        .attr("y", d => y(d.height))
-        .attr("width", x.bandwidth)
-        .attr("height", d => HEIGHT - y(d.height)) // make sure height 270 cm / pixels here fits in height svg 500
-    })
+    // ENTER - append rects and set attr for elems in arr but not on screen
+    // enter and append add ever item in data to our screen
+    rects.enter().append('rect')
+      .attr('x', d => x(d.name))
+      .attr('y', d => y(d.height))
+      .attr('width', x.bandwidth)
+      .attr('height', d => HEIGHT - y(d.height))
+      .attr("fill", "grey")
 
+      console.log(rects);
   }
 }
