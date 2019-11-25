@@ -55,14 +55,26 @@ export default class D3Chart {
 
     vis.yAxisGroup = vis.svg.append('g');
 
-    // once load data, our graph gets updated by update method every 1000 ms
-    d3.json(url).then(data => {
-      vis.data = data;
+    // load two different data sets at once
+    Promise.all([
+      d3.json('https://udemy-react-d3.firebaseio.com/tallest_men.json'),
+      d3.json('https://udemy-react-d3.firebaseio.com/tallest_women.json')
+    ]).then((datasets) => {
+      const [men, women] = datasets
+      // flag var to track whether men or women
+      let flag = true
+
+      // add next two lines to avoid 1 sec lag in initial chart loading
+      vis.data = men
+      vis.update()
 
       d3.interval(() => {
-        vis.update();
+        vis.data = flag ? men : women
+        vis.update() // this renders the visualization
+        flag =! flag
       }, 1000);
-    });
+    })
+    // once load data, our graph gets updated by update method every 1000 ms
   }
 
   // update method gets called every time we update our data
