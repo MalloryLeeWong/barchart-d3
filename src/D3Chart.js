@@ -8,7 +8,7 @@ import * as d3 from 'd3';
 //   {height: "251.4", name: "Vaino Myllyrinne"},
 // ]
 
-const url = 'https://udemy-react-d3.firebaseio.com/tallest_men.json';
+// const url = 'https://udemy-react-d3.firebaseio.com/tallest_men.json';
 // margin is for using d3 margin convention
 const MARGIN = { TOP: 10, BOTTOM: 50, LEFT: 70, RIGHT: 10 };
 const WIDTH = 800 - MARGIN.LEFT - MARGIN.RIGHT;
@@ -30,7 +30,7 @@ export default class D3Chart {
       .attr('transform', `translate(${MARGIN.LEFT}, ${MARGIN.TOP})`);
 
     // add x-axis label
-    vis.svg
+    vis.xLabel = vis.svg
       .append('text')
       .attr('x', WIDTH / 2)
       .attr('y', HEIGHT + 50)
@@ -60,26 +60,20 @@ export default class D3Chart {
       d3.json('https://udemy-react-d3.firebaseio.com/tallest_men.json'),
       d3.json('https://udemy-react-d3.firebaseio.com/tallest_women.json')
     ]).then((datasets) => {
-      const [men, women] = datasets
-      // flag var to track whether men or women
-      let flag = true
-
-      // add next two lines to avoid 1 sec lag in initial chart loading
-      vis.data = men
-      vis.update()
-
-      d3.interval(() => {
-        vis.data = flag ? men : women
-        vis.update() // this renders the visualization
-        flag =! flag
-      }, 1000);
+      vis.menData = datasets[0]
+      vis.womenData = datasets[1]
+      vis.update("men")
     })
     // once load data, our graph gets updated by update method every 1000 ms
   }
 
   // update method gets called every time we update our data
-  update() {
+  update(gender) {
     const vis = this;
+
+    // for updating chart based on dropdown menu
+    vis.data = (gender == "men") ? vis.menData : vis.womenData;
+    vis.xLabel.text(`The world's tallest ${gender}`)
 
     // d3.max loops through data array and finds max height
     const max = d3.max(vis.data, d => d.height);
