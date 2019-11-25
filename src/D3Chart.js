@@ -101,21 +101,25 @@ export default class D3Chart {
     // updates x axis, passing in x scale
     const xAxisCall = d3.axisBottom(x);
     // to call or recalculate axis, need to use call method
-    vis.xAxisGroup.call(xAxisCall);
+    vis.xAxisGroup.transition().duration(500).call(xAxisCall);
 
     // updates y axis
     const yAxisCall = d3.axisLeft(y);
-    vis.yAxisGroup.call(yAxisCall);
+    vis.yAxisGroup.transition().duration(500).call(yAxisCall);
 
     // DATA JOIN - which arr of data we want to associate with shapes
     // when want to add more than one data elem to screen at once do selectAll
     const rects = vis.svg.selectAll('rect').data(vis.data);
 
     // EXIT - removes any els in screen that aren't in array
-    rects.exit().remove();
+    rects.exit()
+    .attr("height", 0)
+    .attr("y", HEIGHT)
+      .transition().duration(500)
+      .remove();
 
     // UPDATE - updates attr of rects that are both in arr and screen
-    rects
+    rects.transition().duration(500)
       .attr('x', d => x(d.name))
       // move bars to start at x axis (instead of top left), have y val that's different for each el in array, return screen height - conversion of each el's height to pixels
       .attr('y', d => y(d.height))
@@ -126,10 +130,12 @@ export default class D3Chart {
     // enter and append add ever item in data to our screen
     rects.enter().append('rect')
       .attr('x', d => x(d.name))
-      .attr('y', d => y(d.height))
       .attr('width', x.bandwidth)
-      .attr('height', d => HEIGHT - y(d.height))
       .attr("fill", "grey")
+      .attr("y", HEIGHT)
+      .transition().duration(500)
+      .attr('height', d => HEIGHT - y(d.height))
+      .attr('y', d => y(d.height))
 
       console.log(rects);
   }
